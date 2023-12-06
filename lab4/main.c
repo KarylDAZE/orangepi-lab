@@ -4,7 +4,6 @@
 #define COLOR_BACKGROUND FB_COLOR(0xff, 0xff, 0xff)
 #define BUTTON_WIDTH 100
 #define BUTTON_HEIGHT 60
-
 #define RED FB_COLOR(255, 0, 0)
 #define ORANGE FB_COLOR(255, 165, 0)
 #define YELLOW FB_COLOR(255, 255, 0)
