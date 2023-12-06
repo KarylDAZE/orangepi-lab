@@ -28,8 +28,8 @@ static void touch_event_cb(int fd)
 		if (x > 0 && x < BUTTON_WIDTH && y > 0 && y < BUTTON_HEIGHT)
 		{
 			fb_draw_rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, COLOR_BACKGROUND);
-			fb_draw_rect(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, RED);
-			fb_draw_text(20, 10, "清空", 30, BLACK);
+			fb_draw_border(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, BLACK);
+			fb_draw_text(20, 40, "清空", 30, BLACK);
 			break;
 		}
 		if (x > 0 && x < BUTTON_WIDTH && y > SCREEN_HEIGHT - BUTTON_HEIGHT && y < SCREEN_HEIGHT)
@@ -76,11 +76,13 @@ static void touch_event_cb(int fd)
 int main(int argc, char *argv[])
 {
 	fb_init("/dev/fb0");
+	font_init("./font.ttc");
+
 	fb_draw_rect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, COLOR_BACKGROUND);
 
 	// 绘制一个清除屏幕的按钮
-	fb_draw_rect(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, RED);
-	fb_draw_text(20, 10, "清空", 30, BLACK);
+	fb_draw_border(0, 0, BUTTON_WIDTH, BUTTON_HEIGHT, BLACK);
+	fb_draw_text(20, 40, "清空", 30, BLACK);
 
 	fb_update();
 	// 打开多点触摸设备文件, 返回文件fd
