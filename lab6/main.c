@@ -22,13 +22,17 @@ typedef struct touch
     int type;
     int x;
     int y;
+    int color;
     int finger;
 } touch;
 
-static int xp[5] = {0}, yp[5] = {0}, color[5] = {0};
+static int xp[FINGER_NUM_MAX * 2] = {0}, yp[FINGER_NUM_MAX * 2] = {0}, color[FINGER_NUM_MAX * 2] = {0};
 
-static int touch_draw(int type, int x, int y, int finger)
+static int touch_draw(int type, int x, int y, int sameColor, int finger)
 {
+    // sameColor不为0时，传递的是另一个设备的color
+    if (sameColor)
+        color[finger] = sameColor;
     switch (type)
     {
     case TOUCH_PRESS:
@@ -44,8 +48,9 @@ static int touch_draw(int type, int x, int y, int finger)
         {
             exit(0);
         }
-        while (!(color[finger] = rand()))
-            ;
+        if (!sameColor)
+            while (!(color[finger] = rand()))
+                ;
         fb_draw_pixel(x, y, color[finger]);
         fb_draw_pixel(x - 1, y, color[finger]);
         fb_draw_pixel(x + 1, y, color[finger]);
@@ -71,26 +76,32 @@ static int touch_draw(int type, int x, int y, int finger)
         break;
     case TOUCH_ERROR:
         printf("close touch fd\n");
-        return 1;
+        return -1;
         break;
     default:
-        return 0;
+        return 1;
     }
     fb_update();
+    return 0;
 }
 
 static void touch_event_cb(int fd)
 {
     int type, x, y, finger;
     type = touch_read(fd, &x, &y, &finger);
-    if (touch_draw(type, x, y, finger) == 1)
+    int flag = touch_draw(type, x, y, 0, finger);
+    if (flag == -1)
     {
         close(fd);
         task_delete_file(fd);
     }
+    else if (flag == 0)
     // send touch info to client
-    touch serverTouch = {type, x, y, finger};
-    myWrite_nonblock(bluetooth_fd, &serverTouch, sizeof(serverTouch));
+    {
+        // 一共2*5根手指，finger=[5,9]表示是从对方设备传输来的touch
+        touch serverTouch = {type, x, y, color[finger], finger + 5};
+        myWrite_nonblock(bluetooth_fd, &serverTouch, sizeof(serverTouch));
+    }
     return;
 }
 
@@ -107,7 +118,7 @@ static void bluetooth_tty_event_cb(int fd)
         exit(0);
         return;
     }
-    if (touch_draw(clientTouch.type, clientTouch.x, clientTouch.y, clientTouch.finger) == 1)
+    if (touch_draw(clientTouch.type, clientTouch.x, clientTouch.y, clientTouch.color, clientTouch.finger) == 1)
     {
         close(fd);
         task_delete_file(fd);
@@ -138,8 +149,8 @@ int main(int argc, char *argv[])
     fb_draw_text(20, 40, "清空", 30, BLACK);
 
     fb_update();
-
-    touch_fd = touch_init("/dev/input/event2");
+    // 对于不同设备 event序号可能不同
+    touch_fd = touch_init("/dev/input/event1");
     task_add_file(touch_fd, touch_event_cb);
 
     bluetooth_fd = bluetooth_tty_init("/dev/rfcomm0");
